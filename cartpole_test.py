@@ -8,12 +8,20 @@ class Network:
     def __init__(self, count):     
         self.count = count
         self.layers = len(count) - 1
-        self.fitness = 0.0
+        self._fitness = [0, 0]
         self.weights, self.biases = [], []
         for i in range(self.layers):
             self.weights.append(np.random.uniform(-1, 1, (count[i], count[i + 1])))
             self.biases.append(np.random.uniform(-1, 1, count[i + 1]))
 
+    @property
+    def fitness(self):
+        return self._fitness[0] / self._fitness[1] if self._fitness[1] > 0 else 0
+
+    @fitness.setter
+    def fitness(self, value):
+        self._fitness[0] += value
+        self._fitness[1] += 1
 
     def getOutput(self, input):
         output = input
@@ -32,8 +40,12 @@ class Population:
         self.population = [Network(nodeCount) for i in range(size)]
 
 
-    def evolve(self):
+    def sort(self):
         self.population.sort(key = lambda x: x.fitness, reverse = True)
+
+
+    def evolve(self):
+        self.sort()
 
         bestCount = min(1, int(self.survivalRate * self.size))
         self.population = self.population[:bestCount]
@@ -80,7 +92,7 @@ def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
 
 
-def run(env, network, max_steps=200, display=True):
+def run(env, network, max_steps=100000, display=True):
     observation = env.reset()
 
     result = 0
@@ -110,20 +122,28 @@ def main(args):
     for generation in range(args.generations):
 
         for idx, network in enumerate(population.population):
-            network.fitness = run(env, network, display = args.display)
+            network.fitness = run(env, network, max_steps = args.max_steps, display = args.display)
 
             print("Generation %4d Sample %3d -> Fitness %4d" % (generation, idx, network.fitness))
 
         min_fitness = min([x.fitness for x in population.population])
-        if min_fitness > 195: break
+        if min_fitness == 1000: break
 
         population.evolve()
 
     print("Final population:")
     for network in population.population:
-        print(run(env, network))
+        print(run(env, network, max_steps = args.max_steps))
 
     print("Mean fitness: %d" % (sum([x.fitness for x in population.population]) / args.size))
+
+    population.sort()
+    print("Running random games with best sample")
+
+    bestNetwork = population.population[0]
+    for i in range(100):
+        print("%5d -> %3d" % (i, run(env, bestNetwork, max_steps = args.max_steps)))
+
 
     env.close()
 
@@ -142,7 +162,10 @@ if __name__ == '__main__':
         help="Survival rate (0 .. 1)")
     parser.add_argument('-nc', '--node-count', type=int, nargs='+', default=[4, 3, 2, 1],
         help="List of network layer sizes")
+    parser.add_argument('-ms', '--max-steps', type=int, default=200,
+        help="Maximum game steps")
 
     args = parser.parse_args()
+
 
     main(args)
