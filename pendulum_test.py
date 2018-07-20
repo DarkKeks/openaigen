@@ -94,6 +94,7 @@ def sigmoid(x):
 
 def run(env, network, display=True):
     observation = env.reset()
+    env.seed(0)
 
     result = 0
     while True:
@@ -107,7 +108,7 @@ def run(env, network, display=True):
         result += reward
         if done: break
 
-    return result
+    network.fitness = result
 
 
 def main(args):
@@ -122,7 +123,7 @@ def main(args):
     for generation in range(args.generations):
 
         for idx, network in enumerate(population.population):
-            network.fitness = run(env, network, display = args.display)
+            run(env, network, display = args.display)
 
             print("Generation %4d Sample %3d -> Fitness %4d" % (generation, idx, network.fitness))
 
@@ -133,9 +134,10 @@ def main(args):
 
     print("Final population:")
     for network in population.population:
-        print(run(env, network))
+        run(env, network)
+        print(network.fitness)
 
-    print("Mean fitness: %d" % (sum([x.fitness for x in population.population]) / args.size))
+    print("Mean fitness: %d" % (sum([x.fitness for x in population.population]) / len(population.population)))
 
     population.sort()
     print("Running random games with best sample")
