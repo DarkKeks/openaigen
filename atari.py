@@ -26,7 +26,7 @@ class Network:
     def getOutput(self, input):
         output = input
         for i in range(self.layers):
-            output = np.matmul(output, self.weights[i]) + self.biases[i]
+            output = np.tanh(np.matmul(output, self.weights[i]) + self.biases[i])
         return output
 
 
@@ -55,9 +55,18 @@ class Population:
         for i, network in enumerate(self.population):
             fitness.append(fitness[i] + (network.fitness - baseFitness) ** 4)
 
+        def findNearest(array, value):
+            previous = 0.0
+
+            for idx, current in enumerate(array):
+                if (value >= previous) and (value <= current):
+                    return idx - 1 if ((value - previous) < (current - value)) and (idx > 0) else idx
+                previous = current
+
+
         def getRandomNetwork():
             value = random.uniform(0, fitness[-1])
-            return bisect.bisect_left(fitness, value)
+            return findNearest(fitness, value)#bisect.bisect_left(fitness, value)
 
         while len(self.population) < self.size:
             idx = [getRandomNetwork() for i in range(2)]
@@ -100,7 +109,7 @@ def run(env, network, max_steps=100000, display=True):
         if display:
             env.render()
 
-        output = network.getOutput(observation)
+        output = network.getOutput(observation / 255.0)
 
         res, mx = 0, output[0]
         for idx, val in enumerate(output):
