@@ -2,9 +2,11 @@ import time, math, random, bisect, argparse
 import gym
 import numpy as np
 
-goodValues =  [70, 99, 101]#[57, 70, 71, 72, 74, 75, 86, 90, 91, 94, 95, 99, 101, 102, 103, 104, 105, 107, 109, 119, 121, 122]
+goodBytes =  [70, 99, 101, 57, 70, 71, 72, 74, 75, 86, 90, 91, 94, 95, 99, 101, 102, 103, 104, 105, 107, 109, 119, 121, 122]
 
 class Network: 
+
+    MEAN_FITNESS = False
 
     def __init__(self, count):     
         self.count = count
@@ -18,18 +20,26 @@ class Network:
 
     @property
     def fitness(self):
-        return self._fitness[0] / self._fitness[1] if self._fitness[1] > 0 else 0
+        if Network.MEAN_FITNESS:
+            return self._fitness[0] / self._fitness[1] if self._fitness[1] > 0 else 0
+        return self._fitness[0]
 
     @fitness.setter
     def fitness(self, value):
-        self._fitness[0] += value
-        self._fitness[1] += 1
+        if Network.MEAN_FITNESS:
+            self._fitness[0] += value
+            self._fitness[1] += 1
+        else:
+            self._fitness[0] = value
 
     def getOutput(self, input):
         output = input
         for i in range(self.layers):
-            output = np.maximum(0, np.tanh(np.matmul(output, self.weights[i]) + self.biases[i]))
+            output = np.maximum(0, np.matmul(output, self.weights[i]) + self.biases[i])
         return output
+
+    def getOptimalNodeCount(input, output):
+        return [input, int(np.sqrt(input * 3)), output]
 
 
 class Population:
@@ -49,13 +59,9 @@ class Population:
     def evolve(self):
         self.sort()
 
-        for idx, sample in enumerate(self.population):
-            if sample.badSample == 0:
-                self.population[idx] = Network(self.nodeCount)
-
-        bestCount = min(1, int(np.sqrt(self.size)))
+        bestCount = max(1, int(np.sqrt(self.size)))
         basePopulation = self.population[:bestCount]
-        self.population = basePopulation
+        self.population = list(basePopulation)
 
         for A in basePopulation:
             for B in basePopulation:
@@ -67,6 +73,10 @@ class Population:
                 break
 
             self.population.append(self.createChild(A, A))
+
+        for idx, sample in enumerate(self.population):
+            if sample.badSample == 0:
+                self.population[idx] = Network(self.nodeCount)
 
 
     def createChild(self, networkA, networkB):     
@@ -94,36 +104,42 @@ class Population:
 
         return result
 
-def run(env, network, max_steps=100000, display=True):
+actionMap = {
+    0: 0,
+    1: 2,
+    2: 3
+}
+
+def run(env, network, display=True):
     env.seed(22)
+
     observation = env.reset()
-    keys = set()
+    actions = set()
 
     result = 0
-    for step in range(max_steps):
-        if display:
-            env.render()
+    while True:
+        if display: env.render()
 
-        output = network.getOutput(observation[goodValues] / 255.0)
+        input = observation[goodBytes] / 255.0
+        output = network.getOutput(input)
 
         res, mx = 0, output[0]
         for idx, val in enumerate(output):
             if val > mx:
-                res = idx
-                mx = val
+                res, mx = idx, val
 
-        if res >= 1:
-            res += 1
+        res = actionMap[res]
 
         if observation[101] == 0:
             res = 1
 
-        keys.add(int(res))
+        actions.add(res)
+
         observation, reward, done, info = env.step(res)
         result += reward
         if done: break
 
-    if (2 in keys) != (3 in keys):
+    if (2 in actions) != (3 in actions):
         network.badSample = True
 
     return result
@@ -137,19 +153,23 @@ def main(args):
 
     for generation in range(args.generations):
         for idx, network in enumerate(population.population):
-            network.fitness = run(env, network, max_steps = args.max_steps, display = args.display)
+            network.fitness = run(env, network, display = args.display)
 
             print("Generation %4d Sample %3d -> Fitness %4d" % (generation, idx, network.fitness))
+        
         population.sort()
-        print([int(x.fitness) for x in population.population])
+        print([int(x.fitness) if not x.badSample else -int(x.fitness) for x in population.population ])
         run(env, population.population[0], display=True)
+
         population.evolve()
+
 
     print("Final population:")
     for network in population.population:
-        print(run(env, network, max_steps = args.max_steps))
+        print(run(env, network))
 
     print("Mean fitness: %d" % (sum([x.fitness for x in population.population]) / args.size))
+
 
     population.sort()
     print("Running random games with best sample")
@@ -174,14 +194,9 @@ if __name__ == '__main__':
         help="Mutation rate (0 .. 1)")
     parser.add_argument('-sr', '--survival-rate', type=float, default=0.2,
         help="Survival rate (0 .. 1)")
-    parser.add_argument('-nc', '--node-count', type=int, nargs='+', default=[len(goodValues), int(np.sqrt(len(goodValues) * 3)), 3],
+    parser.add_argument('-nc', '--node-count', type=int, nargs='+', default=Network.getOptimalNodeCount(len(goodBytes), 3),
         help="List of network layer sizes")
-    parser.add_argument('-ms', '--max-steps', type=int, default=200,
-        help="Maximum game steps")
 
     args = parser.parse_args()
-
-    print(args)
-
 
     main(args)
