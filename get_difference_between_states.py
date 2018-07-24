@@ -45,6 +45,10 @@ def rollout(env):
     global human_agent_action, human_wants_restart, human_sets_pause, prev
     human_wants_restart = False
     obser = env.reset()
+
+    env.unwrapped.frameskip = 1
+    
+
     skip = 0
     total_reward = 0
     total_timesteps = 0
@@ -59,14 +63,15 @@ def rollout(env):
 
         obser, r, done, info = env.step(a)
         
-        cur = np.cast['uint16'](obser)
+        cur = np.cast['int16'](obser)
         diff = cur - prev
         prev = cur
 
+        noise = [90, 70, 72]
+
         for idx, value in enumerate(diff):
-            if value != 0:
-                print(idx, end=' ')
-        print()
+            if value != 0 and not idx in noise:
+                print('%4d -> %4d (%4d)' % (idx, value, cur[idx]))
 
         if r != 0:
             print("reward %0.3f" % r)
@@ -78,7 +83,7 @@ def rollout(env):
         while human_sets_pause:
             env.render()
             time.sleep(0.1)
-        time.sleep(0.1)
+        time.sleep(0.01)
     print("timesteps %i reward %0.2f" % (total_timesteps, total_reward))
 
 print("ACTIONS={}".format(ACTIONS))
