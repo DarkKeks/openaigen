@@ -58,7 +58,7 @@ class Network:
 
     @staticmethod
     def getOptimalNodeCount(input, output):
-        return [input, int(np.sqrt(input * 3)), output]
+        return [input, int(np.sqrt(input * output)), output]
 
 
     def print(self):
@@ -133,14 +133,16 @@ actionMap = {
     2: 3
 }
 
-def run(env, network, display=False):
-    if display:
+def run(env, network, display=False, save=False):
+    if display or save:
         env.seed(network.lastSeed)
     else:
         network.lastSeed = env.seed()[0]
 
     if isinstance(env, gym.wrappers.Monitor):
-        env.enabled = display
+        env.enabled = save
+        if save:
+            env.file_infix = '%04d' % network.fitness
 
     actions = set()
 
@@ -175,10 +177,10 @@ def run(env, network, display=False):
     return result
 
 
-def runSeries(env, network, display = False, count = 5, scoreExtractor = lambda x: sum(x) / len(x)):
+def runSeries(env, network, display = False, save = False, count = 5, scoreExtractor = lambda x: sum(x) / len(x)):
     result = []
     for i in range(count):
-        result.append(run(env, network, display = display))
+        result.append(run(env, network, display = display, save = save))
 
     return scoreExtractor(result)
 
@@ -201,7 +203,7 @@ def main(args):
         print([x.print() for x in population.population])
 
         net = population.population[0];
-        run(env, net, display = True)
+        run(env, net, save = True)
         net.dump(args.dir + '/openaigym-dump-%d-%d' % (net.id, net.fitness));
 
         population.evolve()
