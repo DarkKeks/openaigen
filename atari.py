@@ -150,7 +150,7 @@ def run(env, network, display=True):
         result += reward
         if done: break
 
-    if (2 in actions) != (3 in actions):
+    if (not (2 in actions)) or (not (3 in actions)):
         network.badSample = True
 
     env._flush()
@@ -202,11 +202,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--display', action='store_true', default=False, 
         help="If specified, generations before final will be displayed")
-    parser.add_argument('-s', '--size', type=int, default=20,
+    parser.add_argument('-s', '--size', type=int, default=30,
         help="Population size")
     parser.add_argument('-g', '--generations', type=int, default=100,
         help="Maximum generatoin count")
-    parser.add_argument('-mr', '--mutation-rate', type=float, default=0.01,
+    parser.add_argument('-mr', '--mutation-rate', type=float, default=0.03,
         help="Mutation rate (0 .. 1)")
     parser.add_argument('-sr', '--survival-rate', type=float, default=0.2,
         help="Survival rate (0 .. 1)")
