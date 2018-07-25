@@ -2,11 +2,12 @@ import time, math, random, bisect, argparse
 import gym
 import numpy as np
 
-goodBytes =  [70, 99, 101, 57, 70, 71, 72, 74, 75, 86, 90, 91, 94, 95, 99, 101, 102, 103, 104, 105, 107, 109, 119, 121, 122]
+goodBytes =  [70, 99, 101] #, 57, 70, 71, 72, 74, 75, 86, 90, 91, 94, 95, 99, 101, 102, 103, 104, 105, 107, 109, 119, 121, 122]
 
 class Network: 
 
     MEAN_FITNESS = False
+    MAX_FITNESS = True
 
     def __init__(self, count):     
         self.count = count
@@ -29,6 +30,8 @@ class Network:
         if Network.MEAN_FITNESS:
             self._fitness[0] += value
             self._fitness[1] += 1
+        else if MAX_FITNESS:
+            self._fitness[0] = max(self._fitness[0], value)
         else:
             self._fitness[0] = value
 
@@ -142,12 +145,18 @@ def run(env, network, display=True):
     if (2 in actions) != (3 in actions):
         network.badSample = True
 
+    env._flush()
+
     return result
 
 
 def main(args):
     env = gym.make('Breakout-ram-v0')
     env.unwrapped.frameskip = 1
+
+    env = gym.wrappers.Monitor(env, '/tmp/openai', 
+        video_callable=lambda x: x % (args.size + 1) == args.size, 
+        force=True)
 
     population = Population(args.size, args.survival_rate, args.mutation_rate, args.node_count)
 
@@ -159,7 +168,7 @@ def main(args):
         
         population.sort()
         print([int(x.fitness) if not x.badSample else -int(x.fitness) for x in population.population ])
-        run(env, population.population[0], display=True)
+        # run(env, population.population[0], display=True)
 
         population.evolve()
 
@@ -177,7 +186,6 @@ def main(args):
     bestNetwork = population.population[0]
     for i in range(100):
         print("%5d -> %3d" % (i, run(env, bestNetwork, max_steps = args.max_steps)))
-
 
     env.close()
 
