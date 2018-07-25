@@ -150,7 +150,7 @@ def run(env, network, display=False):
     while True:
         if display: env.render()
 
-        input = observation[goodBytes] / 255.0
+        input = observation[goodBytes] / 255
         output = network.getOutput(input)
 
         res, mx = 0, output[0]
@@ -187,7 +187,7 @@ def main(args):
     env = gym.make('Breakout-ram-v0')
     env.unwrapped.frameskip = 1
 
-    env = gym.wrappers.Monitor(env, args.dir, force=True)
+    env = gym.wrappers.Monitor(env, args.dir, force=True, video_callable = lambda x: True)
 
     population = Population(args.size, args.survival_rate, args.mutation_rate, args.node_count)
 
