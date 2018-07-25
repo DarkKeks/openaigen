@@ -202,7 +202,7 @@ def main(args):
 
         net = population.population[0];
         run(env, net, display = True)
-        net.dump(args.dir + 'openaigym-dump-%d-%d' % (net.id, net.fitness));
+        net.dump(args.dir + '/openaigym-dump-%d-%d' % (net.id, net.fitness));
 
         population.evolve()
 
