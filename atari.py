@@ -142,9 +142,9 @@ def run(env, network, display=False):
     if isinstance(env, gym.wrappers.Monitor):
         env.enabled = display
 
+    actions = set()
 
     observation = env.reset()
-    actions = set()
 
     result = 0
     while True:
@@ -170,7 +170,7 @@ def run(env, network, display=False):
         if done: break
 
 
-    network.badSample = (not 2 in actions) or (not 3 in actions)
+    # network.badSample = (not 2 in actions) or (not 3 in actions)
 
     return result
 
