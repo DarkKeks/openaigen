@@ -156,6 +156,8 @@ def run(env, network, display=True):
 
     if (not (2 in actions)) or (not (3 in actions)):
         network.badSample = True
+    else
+        network.badSample = False
 
     return result
 
@@ -172,7 +174,8 @@ def main(args):
 
     for generation in range(args.generations):
         for idx, network in enumerate(population.population):
-            network.fitness = run(env, network, display = args.display)
+            for rnd in range(3):
+                network.fitness = run(env, network, display = args.display)
 
             print("Generation %4d Sample %3d -> Fitness %7s" % (generation, idx, network.print()))
         
