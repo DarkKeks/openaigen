@@ -1,6 +1,7 @@
 import time, math, random, bisect, argparse
 import gym
 import numpy as np
+import pickle
 
 goodBytes =  [70, 99, 101] #, 57, 70, 71, 72, 74, 75, 86, 90, 91, 94, 95, 99, 101, 102, 103, 104, 105, 107, 109, 119, 121, 122]
 
@@ -40,8 +41,14 @@ class Network:
         else:
             self._fitness[0] = value
 
-    def print(self):
-        return "%d-%d" % (int(self.fitness) if not self.badSample else -int(self.fitness), self.id)
+    def dump(self, filename):
+        with open(filename, 'bw') as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load(filename):
+        with open(filename, 'br') as f:
+            return pickle.load(f)
 
     def getOutput(self, input):
         output = input
@@ -52,6 +59,10 @@ class Network:
     @staticmethod
     def getOptimalNodeCount(input, output):
         return [input, int(np.sqrt(input * 3)), output]
+
+
+    def print(self):
+        return "%4d - %4d" % (int(self.fitness) if not self.badSample else -int(self.fitness), self.id)
 
 
 class Population:
@@ -122,11 +133,15 @@ actionMap = {
     2: 3
 }
 
-def run(env, network, display=True):
+def run(env, network, display=False):
     if display:
         env.seed(network.lastSeed)
     else:
-        network.lastSeed = env.seed()[0] 
+        network.lastSeed = env.seed()[0]
+
+    if isinstance(env, gym.wrappers.Monitor):
+        env.enabled = display
+
 
     observation = env.reset()
     actions = set()
@@ -154,34 +169,40 @@ def run(env, network, display=True):
         result += reward
         if done: break
 
-    if (not (2 in actions)) or (not (3 in actions)):
-        network.badSample = True
-    else
-        network.badSample = False
+
+    network.badSample = (not 2 in actions) or (not 3 in actions)
 
     return result
+
+
+def runSeries(env, network, display = False, count = 5, scoreExtractor = lambda x: sum(x) / len(x)):
+    result = []
+    for i in range(count):
+        result.append(run(env, network, display = display))
+
+    return scoreExtractor(result)
 
 
 def main(args):
     env = gym.make('Breakout-ram-v0')
     env.unwrapped.frameskip = 1
 
-    env = gym.wrappers.Monitor(env, '/tmp/openai', 
-        video_callable=lambda x: x % (args.size + 1) == args.size, 
-        force=True)
+    env = gym.wrappers.Monitor(env, args.dir, force=True)
 
     population = Population(args.size, args.survival_rate, args.mutation_rate, args.node_count)
 
     for generation in range(args.generations):
         for idx, network in enumerate(population.population):
-            for rnd in range(3):
-                network.fitness = run(env, network, display = args.display)
+            network.fitness = runSeries(env, network, display = args.display)
 
             print("Generation %4d Sample %3d -> Fitness %7s" % (generation, idx, network.print()))
         
         population.sort()
-        print([x.print() for x in population.population ])
-        run(env, population.population[0], display=True)
+        print([x.print() for x in population.population])
+
+        net = population.population[0];
+        run(env, net, display = True)
+        net.dump(args.dir + 'openaigym-dump-%d-%d' % (net.id, net.fitness));
 
         population.evolve()
 
@@ -209,7 +230,8 @@ if __name__ == '__main__':
         help="Survival rate (0 .. 1)")
     parser.add_argument('-nc', '--node-count', type=int, nargs='+', default=Network.getOptimalNodeCount(len(goodBytes), 3),
         help="List of network layer sizes")
-
+    parser.add_argument('-dir', type=str, default='/tmp/openai',
+        help="Directory to save network dumps and replays")
     args = parser.parse_args()
 
     main(args)
