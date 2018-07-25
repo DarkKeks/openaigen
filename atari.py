@@ -87,7 +87,7 @@ class Population:
             self.population.append(self.createChild(A, A))
 
         for idx, sample in enumerate(self.population):
-            if sample.badSample == 0:
+            if sample.badSample:
                 self.population[idx] = Network(self.nodeCount)
 
 
@@ -173,7 +173,7 @@ def main(args):
         for idx, network in enumerate(population.population):
             network.fitness = run(env, network, display = args.display)
 
-            print("Generation %4d Sample %3d -> Fitness %4d" % (generation, idx, network.print()))
+            print("Generation %4d Sample %3d -> Fitness %7s" % (generation, idx, network.print()))
         
         population.sort()
         print([x.print() for x in population.population ])
