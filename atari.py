@@ -7,8 +7,8 @@ goodBytes =  [70, 99, 101] #, 57, 70, 71, 72, 74, 75, 86, 90, 91, 94, 95, 99, 10
 class Network: 
 
     LAST_ID = 0
-    MEAN_FITNESS = False
-    MAX_FITNESS = True
+    MEAN_FITNESS = True
+    MAX_FITNESS = False
 
     def __init__(self, count):     
         self.id = Network.LAST_ID
@@ -33,8 +33,7 @@ class Network:
     def fitness(self, value):
         if Network.MEAN_FITNESS:
             self._fitness[0] += value
-            self._fit
-            ness[1] += 1
+            self._fitness[1] += 1
         elif Network.MAX_FITNESS:
             self._fitness[0] = max(self._fitness[0], value)
         else:
@@ -123,7 +122,7 @@ actionMap = {
 }
 
 def run(env, network, display=True):
-    env.seed(22)
+    # env.seed(22)
 
     observation = env.reset()
     actions = set()
