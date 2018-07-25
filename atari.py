@@ -19,7 +19,6 @@ class Network:
         self.count = count
         self.layers = len(count) - 1
         self._fitness = [0, 0]
-        self.badSample = False
         self.weights, self.biases = [], []
         for i in range(self.layers):
             self.weights.append(np.random.uniform(-1, 1, (count[i], count[i + 1])))
@@ -62,7 +61,7 @@ class Network:
 
 
     def print(self):
-        return "%4d - %4d" % (int(self.fitness) if not self.badSample else -int(self.fitness), self.id)
+        return "%4d - %2d" % (int(self.fitness), self.id)
 
 
 class Population:
@@ -76,7 +75,7 @@ class Population:
 
 
     def sort(self):
-        self.population.sort(key = lambda x: (not x.badSample, x.fitness), reverse = True)
+        self.population.sort(key = lambda x: x.fitness, reverse = True)
 
 
     def evolve(self):
@@ -96,11 +95,6 @@ class Population:
                 break
 
             self.population.append(self.createChild(A, A))
-
-        for idx, sample in enumerate(self.population):
-            if sample.badSample:
-                self.population[idx] = Network(self.nodeCount)
-
 
     def createChild(self, networkA, networkB):     
         def smartDivision(a, b):
@@ -170,9 +164,6 @@ def run(env, network, display=False, save=False):
         observation, reward, done, info = env.step(res)
         result += reward
         if done: break
-
-
-    # network.badSample = (not 2 in actions) or (not 3 in actions)
 
     return result
 
