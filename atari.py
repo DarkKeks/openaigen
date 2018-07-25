@@ -206,7 +206,7 @@ if __name__ == '__main__':
         help="Population size")
     parser.add_argument('-g', '--generations', type=int, default=100,
         help="Maximum generatoin count")
-    parser.add_argument('-mr', '--mutation-rate', type=float, default=0.1,
+    parser.add_argument('-mr', '--mutation-rate', type=float, default=0.01,
         help="Mutation rate (0 .. 1)")
     parser.add_argument('-sr', '--survival-rate', type=float, default=0.2,
         help="Survival rate (0 .. 1)")
