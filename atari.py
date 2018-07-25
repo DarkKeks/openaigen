@@ -14,6 +14,7 @@ class Network:
         self.id = Network.LAST_ID
         Network.LAST_ID += 1
 
+        self.lastSeed = 0
         self.count = count
         self.layers = len(count) - 1
         self._fitness = [0, 0]
@@ -122,7 +123,10 @@ actionMap = {
 }
 
 def run(env, network, display=True):
-    # env.seed(22)
+    if display:
+        env.seed(network.lastSeed)
+    else:
+        network.lastSeed = env.seed()[0] 
 
     observation = env.reset()
     actions = set()
@@ -153,8 +157,6 @@ def run(env, network, display=True):
     if (not (2 in actions)) or (not (3 in actions)):
         network.badSample = True
 
-    env._flush()
-
     return result
 
 
@@ -176,7 +178,7 @@ def main(args):
         
         population.sort()
         print([x.print() for x in population.population ])
-        # run(env, population.population[0], display=True)
+        run(env, population.population[0], display=True)
 
         population.evolve()
 
@@ -186,14 +188,6 @@ def main(args):
         print(run(env, network))
 
     print("Mean fitness: %d" % (sum([x.fitness for x in population.population]) / args.size))
-
-
-    population.sort()
-    print("Running random games with best sample")
-
-    bestNetwork = population.population[0]
-    for i in range(100):
-        print("%5d -> %3d" % (i, run(env, bestNetwork, max_steps = args.max_steps)))
 
     env.close()
 
@@ -206,7 +200,7 @@ if __name__ == '__main__':
         help="Population size")
     parser.add_argument('-g', '--generations', type=int, default=100,
         help="Maximum generatoin count")
-    parser.add_argument('-mr', '--mutation-rate', type=float, default=0.03,
+    parser.add_argument('-mr', '--mutation-rate', type=float, default=0.07,
         help="Mutation rate (0 .. 1)")
     parser.add_argument('-sr', '--survival-rate', type=float, default=0.2,
         help="Survival rate (0 .. 1)")
