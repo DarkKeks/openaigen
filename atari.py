@@ -6,10 +6,14 @@ goodBytes =  [70, 99, 101] #, 57, 70, 71, 72, 74, 75, 86, 90, 91, 94, 95, 99, 10
 
 class Network: 
 
+    LAST_ID = 0
     MEAN_FITNESS = False
     MAX_FITNESS = True
 
     def __init__(self, count):     
+        self.id = Network.LAST_ID
+        Network.LAST_ID += 1
+
         self.count = count
         self.layers = len(count) - 1
         self._fitness = [0, 0]
@@ -29,11 +33,15 @@ class Network:
     def fitness(self, value):
         if Network.MEAN_FITNESS:
             self._fitness[0] += value
-            self._fitness[1] += 1
+            self._fit
+            ness[1] += 1
         elif Network.MAX_FITNESS:
             self._fitness[0] = max(self._fitness[0], value)
         else:
             self._fitness[0] = value
+
+    def print(self):
+        return "%d-%d" % (int(self.fitness) if not self.badSample else -int(self.fitness), self.id)
 
     def getOutput(self, input):
         output = input
@@ -41,6 +49,7 @@ class Network:
             output = np.maximum(0, np.matmul(output, self.weights[i]) + self.biases[i])
         return output
 
+    @staticmethod
     def getOptimalNodeCount(input, output):
         return [input, int(np.sqrt(input * 3)), output]
 
@@ -164,10 +173,10 @@ def main(args):
         for idx, network in enumerate(population.population):
             network.fitness = run(env, network, display = args.display)
 
-            print("Generation %4d Sample %3d -> Fitness %4d" % (generation, idx, network.fitness))
+            print("Generation %4d Sample %3d -> Fitness %4d" % (generation, idx, network.print()))
         
         population.sort()
-        print([int(x.fitness) if not x.badSample else -int(x.fitness) for x in population.population ])
+        print([x.print() for x in population.population ])
         # run(env, population.population[0], display=True)
 
         population.evolve()
