@@ -30,7 +30,7 @@ class Network:
         if Network.MEAN_FITNESS:
             self._fitness[0] += value
             self._fitness[1] += 1
-        else if MAX_FITNESS:
+        elif Network.MAX_FITNESS:
             self._fitness[0] = max(self._fitness[0], value)
         else:
             self._fitness[0] = value
