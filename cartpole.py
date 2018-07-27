@@ -3,7 +3,6 @@ import gym
 import numpy as np
 import pickle
 
-goodBytes =  [70, 99, 101] #, 57, 70, 71, 72, 74, 75, 86, 90, 91, 94, 95, 99, 101, 102, 103, 104, 105, 107, 109, 119, 121, 122]
 
 class Network: 
 
@@ -120,11 +119,10 @@ class Population:
 
         return result
 
-actionMap = {
-    0: 0,
-    1: 2,
-    2: 3
-}
+
+def sigmoid(x): 
+    return 1.0 / (1.0 + np.exp(-x))
+
 
 def run(env, network, display=False, save=False):
     if display or save:
@@ -137,30 +135,16 @@ def run(env, network, display=False, save=False):
         if save:
             env.file_infix = '%04d' % network.fitness
 
-    actions = set()
-
     observation = env.reset()
 
     result = 0
     while True:
         if display: env.render()
 
-        input = observation[goodBytes] / 255
-        output = network.getOutput(input)
+        output = network.getOutput(observation)
+        output = [0, 1][sigmoid(output[0]) > 0.5]
 
-        res, mx = 0, output[0]
-        for idx, val in enumerate(output):
-            if val > mx:
-                res, mx = idx, val
-
-        res = actionMap[res]
-
-        if observation[101] == 0:
-            res = 1
-
-        actions.add(res)
-
-        observation, reward, done, info = env.step(res)
+        observation, reward, done, info = env.step(output)
         result += reward
         if done: break
 
@@ -176,8 +160,10 @@ def runSeries(env, network, display = False, save = False, count = 5, scoreExtra
 
 
 def main(args):
-    env = gym.make('Breakout-ram-v0')
-    env.unwrapped.frameskip = 1
+    env = gym.make('CartPole-v0')
+
+    env.seed(0)
+
 
     env = gym.wrappers.Monitor(env, args.dir, force=True, video_callable = lambda x: True)
 
@@ -196,6 +182,11 @@ def main(args):
         run(env, net, save = True)
         net.dump(args.dir + '/openaigym-dump-%d-%d' % (net.id, net.fitness));
 
+
+        min_fitness = min([x.fitness for x in population.population])
+        if min_fitness == 200: break
+
+
         population.evolve()
 
 
@@ -204,6 +195,14 @@ def main(args):
         print(run(env, network))
 
     print("Mean fitness: %d" % (sum([x.fitness for x in population.population]) / args.size))
+
+    population.sort()
+    print("Running random games with best sample")
+
+    bestNetwork = population.population[0]
+    for i in range(100):
+        print("%5d -> %3d" % (i, run(env, bestNetwork, display = True, max_steps = args.max_steps)))
+
 
     env.close()
 
@@ -216,11 +215,11 @@ if __name__ == '__main__':
         help="Population size")
     parser.add_argument('-g', '--generations', type=int, default=100,
         help="Maximum generatoin count")
-    parser.add_argument('-mr', '--mutation-rate', type=float, default=0.07,
+    parser.add_argument('-mr', '--mutation-rate', type=float, default=0.01,
         help="Mutation rate (0 .. 1)")
-    parser.add_argument('-nc', '--node-count', type=int, nargs='+', default=Network.getOptimalNodeCount(len(goodBytes), 3),
+    parser.add_argument('-nc', '--node-count', type=int, nargs='+', default=Network.getOptimalNodeCount(4, 1),
         help="List of network layer sizes")
-    parser.add_argument('-dir', type=str, default='/tmp/openai',
+    parser.add_argument('-dir', type=str, default='/tmp/openai/cartpole',
         help="Directory to save network dumps and replays")
     args = parser.parse_args()
 
